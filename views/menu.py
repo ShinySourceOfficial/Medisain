@@ -18,6 +18,8 @@ def menu_view(page: ft.Page):
     def logout(e):
         page.session.clear()
         page.go("/login")
+        page.snack_bar = ft.SnackBar(ft.Text("Sesión Cerrada Exitosamente."))
+        page.snack_bar.open = True
         #page.window.maximized = False
 
     controls = [

@@ -15,7 +15,7 @@ def createUser_view(page: ft.Page):
         nombres = nombres_input.value.strip().upper()
         apellidos = apellidos_input.value.strip().upper()
         email = email_input.value.strip()
-        rol = rol_dropdown.value
+        rol = rol_dropdown.value.lower()
         password = password_input.value
 
         if "-" not in rut:
@@ -54,14 +54,14 @@ def createUser_view(page: ft.Page):
         page.go("/menu")
     
     rut_input = ft.TextField(label="RUT (formato: 12345678-9)", keyboard_type=ft.KeyboardType.NUMBER)
-    nombres_input = ft.TextField(label="Nombres (en mayúsculas)")
-    apellidos_input = ft.TextField(label="Apellidos (en mayúsculas)")
+    nombres_input = ft.TextField(label="Nombres")
+    apellidos_input = ft.TextField(label="Apellidos")
     email_input = ft.TextField(label="Correo Electrónico")
     rol_dropdown = ft.Dropdown(
         label="Rol",
         options=[
-            ft.dropdown.Option("empleado"),
-            ft.dropdown.Option("administrador"),
+            ft.dropdown.Option("Empleado"),
+            ft.dropdown.Option("Administrador"),
         ],
     )
     password_input = ft.TextField(label="Contraseña", password=True)

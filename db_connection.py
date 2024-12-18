@@ -61,9 +61,9 @@ def add_user(rut, nombres, apellidos, email, rol, password):
 
         user_data = {
             "rut": rut,
-            "nombres": nombres.upper(),
-            "apellidos": apellidos.upper(),
-            "mail": email,
+            "nombres": nombres.lower(),
+            "apellidos": apellidos.lower(),
+            "mail": email.lower(),
             "rol": rol,
             "password": password_hash,
         }
@@ -89,16 +89,16 @@ def add_product(nombre, categoria, laboratorio, precio, stock, fecha_vencimiento
     try:
         db = firestore.client()
         product_data = {
-            "nombre_producto": nombre,
+            "nombre_producto": nombre.lower(),
             "categoria": categoria,
-            "laboratorio": laboratorio,
+            "laboratorio": laboratorio.lower(),
             "precio": precio,
             "stock": stock,
             "fecha_vencimiento": fecha_vencimiento,
             "numero_lote": numero_lote,
             "descuento": descuento,
-            "sucursal": sucursal,
-            "ubicacion": ubicacion,
+            "sucursal": sucursal.lower(),
+            "ubicacion": ubicacion.lower(),
         }
         db.collection("productos").add(product_data)
         print(f"Producto {nombre} agregado correctamente.")
@@ -119,48 +119,43 @@ def delete_product(product_id):
     try:
         db = firestore.client()
         db.collection("productos").document(product_id).delete()
-        print(f"Producto {product_id} eliminado correctamente.")
+        #print(f"Producto {product_id} eliminado correctamente.")
     except Exception as e:
         print(f"Error al eliminar producto: {e}")
 
 def search_products(query):
-    db = firestore.client()  # Asegúrate de que firestore.client() esté correctamente configurado
-    productos_ref = db.collection('productos')  # Cambia esto al nombre de tu colección
+    db = firestore.client()
+    productos_ref = db.collection('productos')
 
-    # Inicializar los resultados de búsqueda
     results = []
 
-    # Verificar si la consulta está vacía
     if not query:
-        # Si no hay consulta, devolver todos los productos
+        # Recuperar todos los productos
         all_products_query = productos_ref.stream()
-        results = [product.to_dict() for product in all_products_query]
+        # Usamos el ID del documento como identificador único
+        results = [{"id": product.id, **product.to_dict()} for product in all_products_query]
     else:
         query = query.lower()
 
-        # Buscar productos por nombre
+        # Búsqueda por nombre
         name_query = productos_ref.where("nombre_producto", ">=", query).where("nombre_producto", "<=", query + "\uf8ff").stream()
-        name_results = [product.to_dict() for product in name_query]
+        name_results = [{"id": product.id, **product.to_dict()} for product in name_query]
 
-        # Buscar productos por categoría
+        # Búsqueda por categoría
         category_query = productos_ref.where("categoria", ">=", query).where("categoria", "<=", query + "\uf8ff").stream()
-        category_results = [product.to_dict() for product in category_query]
+        category_results = [{"id": product.id, **product.to_dict()} for product in category_query]
 
-        # Combinar ambos resultados
         results.extend(name_results)
         results.extend(category_results)
 
-    # Eliminar duplicados, si hay productos con el mismo nombre en ambas búsquedas
+    # Eliminar duplicados basados en el ID
     unique_results = []
     seen_products = set()
     for product in results:
-        # Usamos un identificador único, por ejemplo, el nombre del producto o el ID
-        product_id = product.get("nombre_producto")
+        product_id = product.get("id")  # Usamos el ID de Firestore como identificador único
         if product_id not in seen_products:
             seen_products.add(product_id)
             unique_results.append(product)
 
-    # Debug: Ver los resultados que estamos obteniendo
-    print(f"Productos encontrados: {unique_results}")  # Esto te ayudará a ver si se encuentran productos
-
     return unique_results
+

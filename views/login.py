@@ -1,4 +1,5 @@
 import flet as ft
+import time
 from db_connection import validate_credentials
 
 
@@ -16,16 +17,24 @@ def login_view(page: ft.Page):
         rut = rut_field.value.strip()
         password = password_field.value.strip()
 
+        if "-" not in rut:
+            rut = rut[:-1] + "-" + rut[-1]
+
         if not rut or not password:
             error_message.value = "Por favor, ingrese su RUT y contraseña."
             page.update()
             return
         
         if validate_credentials(rut, password):
+            page.snack_bar = ft.SnackBar(ft.Text("Inicio de Sesión Exitoso."))
+            page.snack_bar.open = True
+            page.update()
+            time.sleep(1)
             page.session.set("user_rut", rut)
             page.go("/menu")
         else:
             error_message.value = "Datos incorrectos. Inténtelo nuevamente."
+            print(rut)
             page.update()
     
 

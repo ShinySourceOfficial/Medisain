@@ -1,5 +1,5 @@
 import flet as ft
-from db_connection import search_products
+from db_connection import search_products, delete_product
 
 def prodManage_view(page: ft.Page):
     page.title = "Medisain - Gestor de Productos"
@@ -10,7 +10,7 @@ def prodManage_view(page: ft.Page):
         
         # Obtener la categoría seleccionada del dropdown y asegurarse de que sea válida
         selected_category = category_dropdown.value
-        if selected_category not in ["Todas", "Medicamentos"]:
+        if selected_category not in ["Todas", "Medicamentos", "Vitaminas y Suplementos", "Anticonceptivos", "Infantil y Mamá", "Cuidado de la Piel", "Higiene y Cuidado Personal"]:
             selected_category = "Todas"  # Si el valor no es válido, se establece en "Todas"
         
         # Limpiar los resultados antes de buscar
@@ -44,17 +44,77 @@ def prodManage_view(page: ft.Page):
                 product_key = f"{product['nombre_producto']}-{product['categoria']}-{product['precio']}"  # Clave única para el producto
                 if product_key not in seen_products:
                     seen_products.add(product_key)
+                    
+                    # Crear los botones de "Editar" y "Borrar"
+                    edit_button = ft.FloatingActionButton(
+                        icon=ft.icons.SETTINGS,
+                        mini=True,  # Botón más pequeño
+                        on_click=lambda e, p=product: print(f"Editar {p['nombre_producto']}")
+                    )
+                    delete_button = ft.FloatingActionButton(
+                        icon=ft.icons.DELETE,
+                        bgcolor=ft.colors.RED,
+                        mini=True,
+                        on_click=lambda e, p=product: confirm_delete(p['id']),  # Usamos el ID de Firestore aquí
+                    )
+
+                    button_container = ft.Container(
+                        content=delete_button,
+                        padding=ft.padding.symmetric(vertical=10),
+                    )
+
+                    product_content = ft.ListTile(
+                        title=ft.Text(f"{product['nombre_producto'].title()} - {product['categoria'].title()}"),
+                        subtitle=ft.Text(f"Precio: ${product['precio']} | Stock: {product['stock']}"),
+                        on_click=lambda e, p=product: show_product_details(p),
+                    )
+                    
+                    # Agregar todo a un Stack para superponer
                     search_results.controls.append(
-                        ft.ListTile(
-                            title=ft.Text(f"{product['nombre_producto']} - {product['categoria']}"),
-                            subtitle=ft.Text(f"Precio: ${product['precio']} | Stock: {product['stock']}"),
-                            on_click=lambda e, p=product: show_product_details(p),
+                        ft.Container(
+                            content=ft.Stack(
+                                controls=[
+                                    product_content,  # Producto como fondo
+                                    ft.Row(
+                                            controls=[edit_button, button_container],
+                                            alignment=ft.MainAxisAlignment.END,
+                                            spacing=10,
+                                    ),
+                                ],
+                                height=65,  # Altura del Stack
+                            ),
+                            padding=6,
+                            border=ft.border.all(1, ft.colors.BLUE_50),  # Borde opcional
+                            border_radius=5,
                         )
                     )
+
         else:
             search_results.controls.append(ft.Text("No se encontraron productos que coincidan con los filtros."))
 
         page.update()
+
+    def confirm_delete(product_id):
+        page.dialog = ft.AlertDialog(
+            title=ft.Text("Confirmar Eliminación"),
+            content=ft.Text("¿Estás seguro de que deseas eliminar este producto?"),
+            actions=[
+                ft.TextButton("Cancelar", on_click=close_dialog),
+                ft.TextButton("Eliminar", on_click=lambda e: delete_product_and_refresh(product_id)),
+            ],
+        )
+        page.dialog.open = True
+        page.update()
+
+
+
+    def delete_product_and_refresh(product_id):
+        delete_product(product_id) # Llama a la función para eliminar el producto
+        page.dialog.open = False
+        page.snack_bar = ft.SnackBar(ft.Text("Producto Eliminado con éxito."))
+        page.snack_bar.open = True
+        page.update()
+        search_and_apply_filters(None)  # Actualiza la lista de productos después de borrar
 
 
     def show_product_details(product):
@@ -105,9 +165,14 @@ def prodManage_view(page: ft.Page):
         label="Categoría", 
         options=[
             ft.dropdown.Option("Todas"),
-            ft.dropdown.Option("Medicamentos")
+            ft.dropdown.Option("Medicamentos"),
+            ft.dropdown.Option("Vitaminas y Suplementos"),
+            ft.dropdown.Option("Anticonceptivos"),
+            ft.dropdown.Option("Infantil y Mamá"),
+            ft.dropdown.Option("Cuidado de la Piel"),
+            ft.dropdown.Option("Higiene y Cuidado Personal"),
         ],
-        width=150  # Puedes ajustar el tamaño si lo deseas
+        width=270  # Puedes ajustar el tamaño si lo deseas
     )
 
     # Botón para buscar y aplicar filtros
@@ -136,48 +201,50 @@ def prodManage_view(page: ft.Page):
         icon=ft.icons.ADD,
         on_click=go_to_add,  # No tiene funcionalidad por ahora
         tooltip="Añadir Producto",
-        icon_size=25,  # Ajusta el tamaño del icono
+        icon_size=35,  # Ajusta el tamaño del icono
         bgcolor=ft.colors.BLUE_500,  # Color de fondo del botón
         icon_color=ft.colors.WHITE,  # Color del icono
-        width=60,  # Tamaño del botón
-        height=60  # Botón redondo
+        width=70,  # Tamaño del botón
+        height=70  # Botón redondo
     )
 
     page.add(
-        ft.Stack(
-            controls=[
-                ft.Container(
-                    content=ft.Column(
-                        controls=[
-                            ft.Row(
-                                controls=[back_button, ft.Text("Buscar Productos", style=ft.TextThemeStyle.HEADLINE_SMALL)],
-                                alignment=ft.MainAxisAlignment.START,
-                            ),
-                            ft.Row(
-                                controls=[search_field, search_button],
-                                spacing=1,
-                            ),
-                            ft.Row(
-                                controls=[
-                                    category_dropdown,
-                                    min_price_field, 
-                                    max_price_field, 
-                                    available_switch
-                                ],
-                                spacing=10,
-                                alignment=ft.MainAxisAlignment.START,  # Alineación de los filtros a la izquierda
-                            ),
-                            ft.Divider(),
-                            search_results,
-                        ],
-                        spacing=20,
-                        expand=True,
+        ft.Container(
+            content=ft.Column(
+                controls=[
+                    ft.Row(
+                        controls=[back_button, ft.Text("Buscar Productos", style=ft.TextThemeStyle.HEADLINE_SMALL)],
+                        alignment=ft.MainAxisAlignment.START,
                     ),
-                    expand=True,
-                ),
-                add_product_button  # El botón que se superpone
-            ],
-            alignment=ft.alignment.bottom_right,
-            expand=True
+                    ft.Row(
+                        controls=[search_field, search_button],
+                        spacing=1,
+                    ),
+                    ft.Row(
+                        controls=[
+                            category_dropdown,
+                            min_price_field,
+                            max_price_field,
+                            available_switch,
+                        ],
+                        spacing=10,
+                        alignment=ft.MainAxisAlignment.START,  # Alineación de los filtros a la izquierda
+                    ),
+                    ft.Divider(),
+                    search_results,  # Resultados de la búsqueda
+                    ft.Divider(),
+                    ft.Container(
+                        content=ft.Row(
+                            controls=[add_product_button],  # Botón de añadir producto
+                            alignment=ft.MainAxisAlignment.END,  # Alineación a la derecha
+                        ),
+                        padding=ft.padding.only(right=5),  # Espaciado superior para separar del resto
+                    ),
+                ],
+                spacing=10,
+                expand=True,
+            ),
+            expand=True,
         )
     )
+
