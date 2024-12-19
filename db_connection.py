@@ -75,17 +75,7 @@ def add_user(rut, nombres, apellidos, email, rol, password):
         print(f"Error al agregar usuario: {e}")
     
 
-def get_all_products():
-    try:
-        db = firestore.client()
-        products = db.collection("productos").get()
-        return [product.to_dict() for product in products]
-    except Exception as e:
-        print(f"Error al obtener productos: {e}")
-        return []
-
-
-def add_product(nombre, categoria, laboratorio, precio, stock, fecha_vencimiento, numero_lote, descuento, sucursal, ubicacion):
+def add_product(nombre, categoria, laboratorio, precio, descuento, sucursal, ubicacion):
     try:
         db = firestore.client()
         product_data = {
@@ -93,9 +83,6 @@ def add_product(nombre, categoria, laboratorio, precio, stock, fecha_vencimiento
             "categoria": categoria,
             "laboratorio": laboratorio.lower(),
             "precio": precio,
-            "stock": stock,
-            "fecha_vencimiento": fecha_vencimiento,
-            "numero_lote": numero_lote,
             "descuento": descuento,
             "sucursal": sucursal.lower(),
             "ubicacion": ubicacion.lower(),
@@ -123,7 +110,14 @@ def delete_product(product_id):
     except Exception as e:
         print(f"Error al eliminar producto: {e}")
 
-def search_products(query):
+def delete_lote(lote_id):
+    try:
+        db = firestore.client()
+        db.collection("lotes").document(lote_id).delete()
+    except Exception as e:
+        print(f"Error al eliminar producto: {e}")
+
+def search_products_for_prodManage(query):
     db = firestore.client()
     productos_ref = db.collection('productos')
 
@@ -159,3 +153,64 @@ def search_products(query):
 
     return unique_results
 
+
+def get_all_products():
+    db = firestore.client()
+    """Obtiene todos los productos desde Firebase."""
+    products_ref = db.collection("productos").stream()
+    products = []
+    for product in products_ref:
+        products.append({"id": product.id, **product.to_dict()})
+    return products
+
+def add_lot(lot_data):
+    db = firestore.client()
+    """Agrega un lote a la colección de 'lotes' en Firebase."""
+    db.collection("lotes").add(lot_data)
+
+
+def search_products_for_inventory(query):
+    db = firestore.client()
+    productos_ref = db.collection('productos')
+    lotes_ref = db.collection('lotes')
+
+    results = []
+
+    if not query:
+        # Recuperar todos los productos y sus lotes
+        all_products_query = productos_ref.stream()
+        for product in all_products_query:
+            # Obtenemos los lotes asociados a cada producto
+            product_lotes_query = lotes_ref.where("producto_id", "==", product.id).stream()
+            lotes = [{"id": lote.id, **lote.to_dict()} for lote in product_lotes_query]
+            # Combine la información de producto con los lotes
+            for lote in lotes:
+                combined_product = {"producto": product.to_dict(), "lote": lote}
+                results.append(combined_product)
+    else:
+        query = query.lower()
+
+        # Búsqueda por nombre de producto
+        name_query = productos_ref.where("nombre_producto", ">=", query).where("nombre_producto", "<=", query + "\uf8ff").stream()
+        name_results = [{"id": product.id, **product.to_dict()} for product in name_query]
+
+        # Búsqueda por categoría
+        category_query = productos_ref.where("categoria", ">=", query).where("categoria", "<=", query + "\uf8ff").stream()
+        category_results = [{"id": product.id, **product.to_dict()} for product in category_query]
+
+        # Unimos los resultados
+        results.extend(name_results)
+        results.extend(category_results)
+
+        # Obtener los lotes asociados a los productos encontrados
+        combined_results = []
+        for product in results:
+            product_lotes_query = lotes_ref.where("producto_id", "==", product["id"]).stream()
+            lotes = [{"id": lote.id, **lote.to_dict()} for lote in product_lotes_query]
+            for lote in lotes:
+                combined_product = {"producto": product, "lote": lote}
+                combined_results.append(combined_product)
+
+        results = combined_results
+
+    return results

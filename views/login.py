@@ -85,7 +85,7 @@ def login_view(page: ft.Page):
         width= 800,
         height=470,
         border_radius=20,
-        bgcolor= ft.colors.WHITE70 if page.theme_mode == ft.ThemeMode.LIGHT else "black",
+        bgcolor= ft.colors.WHITE10 if page.theme_mode == ft.ThemeMode.LIGHT else ft.colors.BLACK12,
     )
 
     page.add(

@@ -1,9 +1,12 @@
 import flet as ft
 from views.login import login_view
 from views.menu import menu_view
-from views.addUser import createUser_view
+from views.inventory import inventory_view
 from views.prodManage import prodManage_view
 from views.addProd import addProd_view
+from views.lotRegister import lotRegister_view
+from views.saleRegister import saleRegister_view
+from views.addUser import createUser_view
 from db_connection import initialize_firebase
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, message="Detected filter using positional arguments")
@@ -31,12 +34,18 @@ def navigate_to_page(page, route):
         login_view(page)
     elif route == "/menu":
         menu_view(page)
-    elif route == "/createUser":
-        createUser_view(page)
+    elif route == "/inventory":
+        inventory_view(page)
     elif route == "/prodManage":
         prodManage_view(page)
     elif route == "/addProd":
         addProd_view(page)
+    elif route == "/lotRegister":
+        lotRegister_view(page)
+    elif route == "/saleRegister":
+        saleRegister_view(page)
+    elif route == "/createUser":
+        createUser_view(page)
     else:
         login_view(page)
 

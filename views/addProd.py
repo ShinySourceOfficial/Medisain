@@ -35,23 +35,6 @@ def addProd_view(page: ft.Page):
             return
 
         precio = float(precio_field.value)
-
-        if not stock_field.value or not stock_field.value.isdigit():
-            error("Ingrese una cifra correcta en el stock.")
-            return
-
-        stock = int(stock_field.value)
-        fecha_vencimiento = fecha_vencimiento_field.value
-
-        if not fecha_vencimiento:
-            error("La fecha de vencimiento es obligatoria.")
-            return
-
-        numero_lote = numero_lote_field.value
-
-        if not numero_lote:
-            error("El número de lote es obligatorio.")
-            return
         
         if not descuento_field.value or not descuento_field.value.isdigit():
             error("Ingrese una cifra correcta en el descuento.")
@@ -73,8 +56,8 @@ def addProd_view(page: ft.Page):
 
         # Llamar a la función para agregar producto
         add_product(
-            nombre, categoria, laboratorio, precio, stock,
-            fecha_vencimiento, numero_lote, descuento, sucursal, ubicacion
+            nombre, categoria, laboratorio, precio,
+            descuento, sucursal, ubicacion
         )
 
         # Limpiar campos y mostrar mensaje de éxito
@@ -102,9 +85,6 @@ def addProd_view(page: ft.Page):
             ])),
         (laboratorio_field := ft.TextField(label="Laboratorio")),
         (precio_field := ft.TextField(label="Precio")),
-        (stock_field := ft.TextField(label="Stock")),
-        (fecha_vencimiento_field := ft.TextField(label="Fecha de Vencimiento")),
-        (numero_lote_field := ft.TextField(label="Número de Lote")),
         (descuento_field := ft.TextField(label="Descuento")),
         (sucursal_field := ft.TextField(label="Sucursal")),
         (ubicacion_field := ft.TextField(label="Ubicación")),
@@ -121,7 +101,7 @@ def addProd_view(page: ft.Page):
     back_button = ft.IconButton(
         icon=ft.icons.ARROW_BACK,
         on_click=go_to_prodManage,
-        tooltip="Volver al Menú"
+        tooltip="Volver al Gestor de Productos"
     )
 
 
@@ -129,16 +109,19 @@ def addProd_view(page: ft.Page):
         ft.Container(
             content=ft.Column(
                 controls=[
+                    ft.Container(height=10),
                     ft.Row(
                         controls=[back_button, ft.Text("Agregar Producto", style=ft.TextThemeStyle.HEADLINE_SMALL),],
                         alignment=ft.MainAxisAlignment.START,
                     ),
-                    ft.Divider(height=20),
+                    ft.Divider(height=10),
                     ft.ListView(
-                        controls=[*fields, button_row],
+                        controls=[*fields,
+                                  ft.Container(height=10),
+                                  button_row],
                         expand=True,  # Ocupa todo el espacio disponible
                         spacing=20,   # Espacio entre los elementos
-                        padding=ft.padding.all(20),
+                        padding=ft.padding.all(50),
                     ),
                 ],
                 alignment=ft.MainAxisAlignment.CENTER,

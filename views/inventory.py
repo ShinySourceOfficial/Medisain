@@ -1,8 +1,8 @@
 import flet as ft
-from db_connection import search_products_for_prodManage, delete_product
+from db_connection import search_products_for_inventory, delete_lote
 
-def prodManage_view(page: ft.Page):
-    page.title = "Medisain - Gestor de Productos"
+def inventory_view(page: ft.Page):
+    page.title = "Medisain - Gestor de Inventario"
     search_results = ft.ListView(expand=True, spacing=10)
 
     def search_and_apply_filters(e):
@@ -11,49 +11,53 @@ def prodManage_view(page: ft.Page):
         # Obtener la categoría seleccionada del dropdown y asegurarse de que sea válida
         selected_category = category_dropdown.value
         if selected_category not in ["Todas", "Medicamentos", "Vitaminas y Suplementos", "Anticonceptivos", "Infantil y Mamá", "Cuidado de la Piel", "Higiene y Cuidado Personal"]:
-            selected_category = "Todas"  # Si el valor no es válido, se establece en "Todas"
+            selected_category = "Todas"
         
         # Limpiar los resultados antes de buscar
         search_results.controls.clear()
 
-        # Si el cuadro de búsqueda está vacío, mostramos todos los productos
         if not query:
-            results = search_products_for_prodManage("")  # Obtiene todos los productos (sin filtros de búsqueda)
+            results = search_products_for_inventory("")  # Obtiene todos los productos (sin filtros de búsqueda)
         else:
             # Si hay algo en el cuadro de búsqueda, realizamos la búsqueda con la query
-            results = search_products_for_prodManage(query)
+            results = search_products_for_inventory(query)
 
         min_price = float(min_price_field.value or 0)
         max_price = float(max_price_field.value or float("inf"))
+        available_only = available_switch.value
 
-        # Filtrar los resultados según los filtros establecidos, incluyendo la categoría seleccionada
+        # Filtrar los resultados según los filtros establecidos
+        # Filtrar los resultados según los filtros establecidos
         filtered_results = [
             product for product in results
-            if min_price <= product["precio"] <= max_price and
-            (selected_category == "Todas" or product["categoria"] == selected_category)
+            if min_price <= product["producto"]["precio"] <= max_price and
+            (not available_only or (lote := product.get("lote")) is not None and int(lote["unidades"]) > 0) and
+            (selected_category == "Todas" or product["producto"]["categoria"] == selected_category)
         ]
 
-        # Usamos un conjunto para evitar duplicados
+
         seen_products = set()
 
-        # Mostrar los productos filtrados
+        # Mostrar los productos con sus lotes
         if filtered_results:
-            for product in filtered_results:
-                product_key = f"{product['nombre_producto']}-{product['categoria']}-{product['precio']}"  # Clave única para el producto
+            for item in filtered_results:
+                product = item["producto"]
+                lote = item["lote"]
+                product_key = f"{product['nombre_producto']}-{product['categoria']}-{product['precio']}-{lote['numero_lote']}"
                 if product_key not in seen_products:
                     seen_products.add(product_key)
                     
                     # Crear los botones de "Editar" y "Borrar"
                     edit_button = ft.FloatingActionButton(
                         icon=ft.icons.SETTINGS,
-                        mini=True,  # Botón más pequeño
+                        mini=True,
                         on_click=lambda e, p=product: print(f"Editar {p['nombre_producto']}")
                     )
                     delete_button = ft.FloatingActionButton(
                         icon=ft.icons.DELETE,
                         bgcolor=ft.colors.RED,
                         mini=True,
-                        on_click=lambda e, p=product: confirm_delete(p['id']),  # Usamos el ID de Firestore aquí
+                        on_click=lambda e, l=lote: confirm_delete(l['id']),
                     )
 
                     button_container = ft.Container(
@@ -62,27 +66,26 @@ def prodManage_view(page: ft.Page):
                     )
 
                     product_content = ft.ListTile(
-                        title=ft.Text(f"{product['nombre_producto'].title()} - {product['categoria'].title()}"),
-                        subtitle=ft.Text(f"Laboratorio: {product['laboratorio']} | Precio: ${product['precio']}"),
-                        on_click=lambda e, p=product: show_product_details(p),
+                        title=ft.Text(f"{product['nombre_producto'].title()} - {product['categoria']} - Stock: {lote['unidades']}"),
+                        subtitle=ft.Text(f"Laboratorio: {product['laboratorio']} | Precio: ${product['precio']} | Lote: {lote['numero_lote']}"),
+                        on_click=lambda e, p=product, l=lote: show_product_details(p, l),
                     )
-                    
-                    # Agregar todo a un Stack para superponer
+
                     search_results.controls.append(
                         ft.Container(
                             content=ft.Stack(
                                 controls=[
-                                    product_content,  # Producto como fondo
+                                    product_content,
                                     ft.Row(
                                             controls=[edit_button, button_container],
                                             alignment=ft.MainAxisAlignment.END,
                                             spacing=10,
                                     ),
                                 ],
-                                height=65,  # Altura del Stack
+                                height=65,
                             ),
                             padding=6,
-                            border=ft.border.all(1, ft.colors.BLUE_50),  # Borde opcional
+                            border=ft.border.all(1, ft.colors.BLUE_50),
                             border_radius=5,
                         )
                     )
@@ -92,13 +95,13 @@ def prodManage_view(page: ft.Page):
 
         page.update()
 
-    def confirm_delete(product_id):
+    def confirm_delete(lote_id):
         page.dialog = ft.AlertDialog(
             title=ft.Text("Confirmar Eliminación"),
             content=ft.Text("¿Estás seguro de que deseas eliminar este producto?"),
             actions=[
                 ft.TextButton("Cancelar", on_click=close_dialog),
-                ft.TextButton("Eliminar", on_click=lambda e: delete_product_and_refresh(product_id)),
+                ft.TextButton("Eliminar", on_click=lambda e: delete_lote_and_refresh(lote_id)),
             ],
         )
         page.dialog.open = True
@@ -106,8 +109,8 @@ def prodManage_view(page: ft.Page):
 
 
 
-    def delete_product_and_refresh(product_id):
-        delete_product(product_id) # Llama a la función para eliminar el producto
+    def delete_lote_and_refresh(lote_id):
+        delete_lote(lote_id) # Llama a la función para eliminar el producto
         page.dialog.open = False
         page.snack_bar = ft.SnackBar(ft.Text("Producto Eliminado con éxito."))
         page.snack_bar.open = True
@@ -115,7 +118,7 @@ def prodManage_view(page: ft.Page):
         search_and_apply_filters(None)  # Actualiza la lista de productos después de borrar
 
 
-    def show_product_details(product):
+    def show_product_details(product, lote):
         """Muestra los detalles del producto seleccionado."""
         page.dialog = ft.AlertDialog(
             title=ft.Text(f"Detalles de {product['nombre_producto']}"),
@@ -125,6 +128,10 @@ def prodManage_view(page: ft.Page):
                     ft.Text(f"Laboratorio: {product['laboratorio']}"),
                     ft.Text(f"Precio: ${product['precio']}"),
                     ft.Text(f"Descuento: {product['descuento']}%"),
+                    ft.Text(f"Stock: {lote['unidades']}"),
+                    ft.Text(f"Fecha de Fabricación: {lote['mes_creacion']}/{lote['year_creacion']}"),
+                    ft.Text(f"Fecha de Vencimiento: {lote['mes_vencimiento']}/{lote['year_vencimiento']}"),
+                    ft.Text(f"Número de Lote: {lote['numero_lote']}"),
                     ft.Text(f"Sucursal: {product['sucursal']}"),
                     ft.Text(f"Ubicación: {product['ubicacion']}"),
                 ]
@@ -143,8 +150,6 @@ def prodManage_view(page: ft.Page):
         """Redirige al menú principal."""
         page.go("/menu")
 
-    def go_to_add(e):
-        page.go("/addProd")
 
     # Campo de búsqueda
     search_field = ft.TextField(
@@ -155,6 +160,7 @@ def prodManage_view(page: ft.Page):
     # Filtros adicionales
     min_price_field = ft.TextField(label="Precio Mínimo", width=150)
     max_price_field = ft.TextField(label="Precio Máximo", width=150)
+    available_switch = ft.Switch(label="Mostrar solo disponibles")
     category_dropdown = ft.Dropdown(
         label="Categoría", 
         options=[
@@ -190,24 +196,13 @@ def prodManage_view(page: ft.Page):
     # Al iniciar, cargamos todos los productos sin ningún filtro
     search_and_apply_filters(None)
 
-    # Botón de Añadir Producto (+) en la esquina inferior derecha
-    add_product_button = ft.IconButton(
-        icon=ft.icons.ADD,
-        on_click=go_to_add,  # No tiene funcionalidad por ahora
-        tooltip="Añadir Producto",
-        icon_size=35,  # Ajusta el tamaño del icono
-        bgcolor=ft.colors.BLUE_500,  # Color de fondo del botón
-        icon_color=ft.colors.WHITE,  # Color del icono
-        width=70,  # Tamaño del botón
-        height=70  # Botón redondo
-    )
 
     page.add(
         ft.Container(
             content=ft.Column(
                 controls=[
                     ft.Row(
-                        controls=[back_button, ft.Text("Buscar Productos", style=ft.TextThemeStyle.HEADLINE_SMALL)],
+                        controls=[back_button, ft.Text("Buscar Inventario", style=ft.TextThemeStyle.HEADLINE_SMALL)],
                         alignment=ft.MainAxisAlignment.START,
                     ),
                     ft.Row(
@@ -219,20 +214,14 @@ def prodManage_view(page: ft.Page):
                             category_dropdown,
                             min_price_field,
                             max_price_field,
+                            available_switch,
                         ],
                         spacing=10,
-                        alignment=ft.MainAxisAlignment.START,  # Alineación de los filtros a la izquierda
+                        alignment=ft.MainAxisAlignment.START,
                     ),
                     ft.Divider(),
                     search_results,  # Resultados de la búsqueda
                     ft.Divider(),
-                    ft.Container(
-                        content=ft.Row(
-                            controls=[add_product_button],  # Botón de añadir producto
-                            alignment=ft.MainAxisAlignment.END,  # Alineación a la derecha
-                        ),
-                        padding=ft.padding.only(right=5),  # Espaciado superior para separar del resto
-                    ),
                 ],
                 spacing=10,
                 expand=True,
