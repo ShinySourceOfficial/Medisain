@@ -44,8 +44,8 @@ def menu_view(page: ft.Page):
                                     ft.Container(height=35),
                                     ft.Row(
                                         controls=[
-                                            ft.ElevatedButton("Gestionar Inventario", on_click=go_inventory, width=300, height=70, style=ft.ButtonStyle(text_style=ft.TextStyle(size=17, weight=ft.FontWeight.BOLD))),
-                                            ft.ElevatedButton("Gestionar Productos", on_click=go_prodManage, width=300, height=70, style=ft.ButtonStyle(text_style=ft.TextStyle(size=17, weight=ft.FontWeight.BOLD))),
+                                            ft.ElevatedButton("Gestionar Inventario", on_click=go_inventory, width=300, height=70, style=ft.ButtonStyle(text_style=ft.TextStyle(size=16, weight=ft.FontWeight.BOLD))),
+                                            ft.ElevatedButton("Gestionar Productos", on_click=go_prodManage, width=300, height=70, style=ft.ButtonStyle(text_style=ft.TextStyle(size=16, weight=ft.FontWeight.BOLD))),
                                         ],
                                         alignment=ft.MainAxisAlignment.CENTER,
                                         spacing=35,
@@ -53,8 +53,8 @@ def menu_view(page: ft.Page):
                                     ft.Container(height=15),
                                     ft.Row(
                                         controls=[
-                                            ft.ElevatedButton("Registrar Lote", on_click=go_lotRegister, width=300, height=70, style=ft.ButtonStyle(text_style=ft.TextStyle(size=17, weight=ft.FontWeight.BOLD))),
-                                            ft.ElevatedButton("Ver Registro de Ventas", on_click=go_saleRegister, width=300, height=70, style=ft.ButtonStyle(text_style=ft.TextStyle(size=17, weight=ft.FontWeight.BOLD))),
+                                            ft.ElevatedButton("Registrar Lote", on_click=go_lotRegister, width=300, height=70, style=ft.ButtonStyle(text_style=ft.TextStyle(size=16, weight=ft.FontWeight.BOLD))),
+                                            ft.ElevatedButton("Ver Registro de Ventas", on_click=go_saleRegister, width=300, height=70, style=ft.ButtonStyle(text_style=ft.TextStyle(size=16, weight=ft.FontWeight.BOLD))),
                                         ],
                                         alignment=ft.MainAxisAlignment.CENTER,
                                         spacing=35,
@@ -62,8 +62,8 @@ def menu_view(page: ft.Page):
                                     ft.Container(height=15),
                                     ft.Row(
                                         controls=[
-                                            ft.ElevatedButton("Crear Usuario", on_click=go_createUser, width=300, height=70, style=ft.ButtonStyle(text_style=ft.TextStyle(size=17, weight=ft.FontWeight.BOLD))),
-                                            ft.ElevatedButton("Cerrar Sesión", on_click=logout, width=300, height=70, color="red", style=ft.ButtonStyle(text_style=ft.TextStyle(size=17, weight=ft.FontWeight.BOLD)))
+                                            ft.ElevatedButton("Crear Usuario", on_click=go_createUser, width=300, height=70, style=ft.ButtonStyle(text_style=ft.TextStyle(size=16, weight=ft.FontWeight.BOLD))),
+                                            ft.ElevatedButton("Cerrar Sesión", on_click=logout, width=300, height=70, color="red", style=ft.ButtonStyle(text_style=ft.TextStyle(size=16, weight=ft.FontWeight.BOLD)))
                                         ],
                                         alignment=ft.MainAxisAlignment.CENTER,
                                         spacing=35,
@@ -102,8 +102,8 @@ def menu_view(page: ft.Page):
                                     ft.Container(height=35),
                                     ft.Row(
                                         controls=[
-                                            ft.ElevatedButton("Gestionar Inventario", on_click=go_inventory, width=300, height=70, style=ft.ButtonStyle(text_style=ft.TextStyle(size=17, weight=ft.FontWeight.BOLD))),
-                                            ft.ElevatedButton("Registrar Lote", on_click=go_lotRegister, width=300, height=70, style=ft.ButtonStyle(text_style=ft.TextStyle(size=17, weight=ft.FontWeight.BOLD))),
+                                            ft.ElevatedButton("Gestionar Inventario", on_click=go_inventory, width=300, height=70, style=ft.ButtonStyle(text_style=ft.TextStyle(size=16, weight=ft.FontWeight.BOLD))),
+                                            ft.ElevatedButton("Registrar Lote", on_click=go_lotRegister, width=300, height=70, style=ft.ButtonStyle(text_style=ft.TextStyle(size=16, weight=ft.FontWeight.BOLD))),
                                         ],
                                         alignment=ft.MainAxisAlignment.CENTER,
                                         spacing=35,
@@ -111,8 +111,8 @@ def menu_view(page: ft.Page):
                                     ft.Container(height=15),
                                     ft.Row(
                                         controls=[
-                                            ft.ElevatedButton("Ver Registro de Ventas", on_click=go_saleRegister, width=300, height=70, style=ft.ButtonStyle(text_style=ft.TextStyle(size=17, weight=ft.FontWeight.BOLD))),
-                                            ft.ElevatedButton("Cerrar Sesión", on_click=logout, width=300, height=70, color="red", style=ft.ButtonStyle(text_style=ft.TextStyle(size=17, weight=ft.FontWeight.BOLD)))
+                                            ft.ElevatedButton("Ver Registro de Ventas", on_click=go_saleRegister, width=300, height=70, style=ft.ButtonStyle(text_style=ft.TextStyle(size=16, weight=ft.FontWeight.BOLD))),
+                                            ft.ElevatedButton("Cerrar Sesión", on_click=logout, width=300, height=70, color="red", style=ft.ButtonStyle(text_style=ft.TextStyle(size=16, weight=ft.FontWeight.BOLD)))
                                         ],
                                         alignment=ft.MainAxisAlignment.CENTER,
                                         spacing=35,
@@ -151,7 +151,7 @@ def menu_view(page: ft.Page):
                                     ft.Container(height=35),
                                     ft.Row(
                                         controls=[
-                                            ft.ElevatedButton("Cerrar Sesión", on_click=logout, width=300, height=70, color="red", style=ft.ButtonStyle(text_style=ft.TextStyle(size=17, weight=ft.FontWeight.BOLD)))
+                                            ft.ElevatedButton("Cerrar Sesión", on_click=logout, width=300, height=70, color="red", style=ft.ButtonStyle(text_style=ft.TextStyle(size=16, weight=ft.FontWeight.BOLD)))
                                         ],
                                         alignment=ft.MainAxisAlignment.CENTER,
                                         spacing=35,

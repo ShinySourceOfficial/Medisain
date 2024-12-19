@@ -58,7 +58,7 @@ def lotRegister_view(page: ft.Page):
         ]
         # Mapear nombre_producto con producto_id
         for product in products:
-            product_map[product["nombre_producto"]] = product["id"]
+            product_map[f"{product['nombre_producto']} - {product['laboratorio']}"] = product["id"]
 
         selected_product_dropdown.options = product_options
         page.update()
