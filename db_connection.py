@@ -60,11 +60,11 @@ def add_user(rut, nombres, apellidos, email, rol, password):
         password_hash = hashlib.sha256(password.encode()).hexdigest()
 
         user_data = {
-            "rut": rut,
+            "rut": rut.lower(),
             "nombres": nombres.lower(),
             "apellidos": apellidos.lower(),
             "mail": email.lower(),
-            "rol": rol,
+            "rol": rol.lower(),
             "password": password_hash,
         }
 
@@ -101,12 +101,26 @@ def update_product(product_id, updated_data):
     except Exception as e:
         print(f"Error al actualizar producto: {e}")
 
+def update_lote(lote_id, updated_data):
+    try:
+        db = firestore.client()
+        db.collection("lotes").document(lote_id).update(updated_data)
+        print(f"Producto {lote_id} actualizado correctamente.")
+    except Exception as e:
+        print(f"Error al actualizar producto: {e}")
+
 
 def delete_product(product_id):
     try:
         db = firestore.client()
         db.collection("productos").document(product_id).delete()
-        #print(f"Producto {product_id} eliminado correctamente.")
+        print(f"Producto {product_id} eliminado correctamente.")
+        
+        lotes_ref = db.collection("lotes").where("producto_id", "==", product_id).stream()
+        for lote in lotes_ref:
+            lote.reference.delete()
+            print(f"Lote con producto_id {product_id} eliminado correctamente.")
+    
     except Exception as e:
         print(f"Error al eliminar producto: {e}")
 
@@ -214,3 +228,14 @@ def search_products_for_inventory(query):
         results = combined_results
 
     return results
+
+
+def update_lote_availability(lote_id, availability):
+        db = firestore.client()
+        try:
+            lote_ref = db.collection('lotes').document(lote_id)
+            lote_ref.update({"disponible": availability})
+            print(f"Lote {lote_id} actualizado a Disponible: {availability}.")
+        except Exception as e:
+            print(f"Error actualizando el lote {lote_id}: {e}")
+

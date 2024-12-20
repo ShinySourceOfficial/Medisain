@@ -21,9 +21,22 @@ def lotRegister_view(page: ft.Page):
         if not lot_number_field.value:
             error("El número de lote es obligatorio.")
             return
-
-        if not stock_field.value or not stock_field.value.isdigit():
-            error("Ingresa una cantidad válida de unidades.")
+        
+        if len(lot_number_field.value) > 20:
+            error("El número máximo de caracteres es de 20.")
+            return
+        
+        try:
+            if len(str(stock_field.value)) > 15:
+                error("El stock no debe exceder los 15 caracteres.")
+                return
+            
+            stock = float(stock_field.value)
+            if stock < 0:
+                error("El stock no puede ser negativo.")
+                return
+        except ValueError:
+            error("Ingrese un número válido en el stock.")
             return
 
         # Obtener producto_id del producto seleccionado
@@ -32,12 +45,13 @@ def lotRegister_view(page: ft.Page):
         # Datos del lote
         lot_data = {
             "numero_lote": lot_number_field.value,
-            "mes_creacion": creation_month_dropdown.value,
-            "year_creacion": creation_year_dropdown.value,
-            "mes_vencimiento": expiration_month_dropdown.value,
-            "year_vencimiento": expiration_year_dropdown.value,
+            "mes_creacion": int(creation_month_dropdown.value),
+            "year_creacion": int(creation_year_dropdown.value),
+            "mes_vencimiento": int(expiration_month_dropdown.value),
+            "year_vencimiento": int(expiration_year_dropdown.value),
             "unidades": int(stock_field.value),
             "producto_id": producto_id,  # Almacena el producto_id
+            "disponible": "si",
         }
 
         # Llamar a la función para agregar el lote
@@ -77,7 +91,7 @@ def lotRegister_view(page: ft.Page):
         )),
         (creation_year_dropdown := ft.Dropdown(
             label="Año de Creación",
-            options=[ft.dropdown.Option(str(year)) for year in range(2024, 2031)],
+            options=[ft.dropdown.Option(str(year)) for year in range(2023, 2031)],
         )),
         (expiration_month_dropdown := ft.Dropdown(
             label="Mes de Vencimiento",

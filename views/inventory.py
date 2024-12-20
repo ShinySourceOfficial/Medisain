@@ -1,5 +1,6 @@
 import flet as ft
-from db_connection import search_products_for_inventory, delete_lote
+from datetime import datetime
+from db_connection import search_products_for_inventory, delete_lote, update_lote_availability, update_product, update_lote
 
 def inventory_view(page: ft.Page):
     page.title = "Medisain - Gestor de Inventario"
@@ -46,12 +47,29 @@ def inventory_view(page: ft.Page):
                 product_key = f"{product['nombre_producto']}-{product['categoria']}-{product['precio']}-{lote['numero_lote']}"
                 if product_key not in seen_products:
                     seen_products.add(product_key)
+
+                    precio_original = product['precio']
+                    descuento = product['descuento']
+
+                    if descuento == 0.0:
+                        precio_final = precio_original
+                    else:
+                        precio_final = precio_original * (1 - descuento / 100)
+
+                    precio_mostrado = f"${precio_final:.1f}"
+
+                    lote_status = get_lote_status(lote)
+                    results_color = ft.colors.BLACK12 if lote_status == "vencido" else (ft.colors.RED if lote_status == "proximo" else ft.colors.BACKGROUND)
+                    text_color = ft.colors.RED if lote_status == "vencido" else (ft.colors.WHITE if lote_status == "proximo" else ft.colors.ON_BACKGROUND)
+                
+                    if lote_status == "vencido":
+                        update_lote_availability(lote["id"], "no")
                     
                     # Crear los botones de "Editar" y "Borrar"
                     edit_button = ft.FloatingActionButton(
                         icon=ft.icons.SETTINGS,
                         mini=True,
-                        on_click=lambda e, p=product: print(f"Editar {p['nombre_producto']}")
+                        on_click=lambda e, p=product, l=lote: edit_inventory_dialog(p,l)
                     )
                     delete_button = ft.FloatingActionButton(
                         icon=ft.icons.DELETE,
@@ -62,38 +80,90 @@ def inventory_view(page: ft.Page):
 
                     button_container = ft.Container(
                         content=delete_button,
-                        padding=ft.padding.symmetric(vertical=10),
+                        padding=ft.padding.symmetric(vertical=10, horizontal=10),
                     )
 
                     product_content = ft.ListTile(
-                        title=ft.Text(f"{product['nombre_producto'].title()} - {product['categoria']} - Stock: {lote['unidades']}"),
-                        subtitle=ft.Text(f"Laboratorio: {product['laboratorio']} | Precio: ${product['precio']} | Lote: {lote['numero_lote']}"),
+                        title=ft.Text(f"{product['nombre_producto'].title()} - {product['categoria']} - Stock: {lote['unidades']}", color=text_color),
+                        subtitle=ft.Text(f"Laboratorio: {product['laboratorio']} | Precio: ${precio_mostrado} | Lote: {lote['numero_lote']}", color=text_color),
                         on_click=lambda e, p=product, l=lote: show_product_details(p, l),
                     )
 
-                    search_results.controls.append(
-                        ft.Container(
-                            content=ft.Stack(
-                                controls=[
-                                    product_content,
-                                    ft.Row(
-                                            controls=[edit_button, button_container],
-                                            alignment=ft.MainAxisAlignment.END,
-                                            spacing=10,
-                                    ),
-                                ],
-                                height=65,
-                            ),
-                            padding=6,
-                            border=ft.border.all(1, ft.colors.BLUE_50),
-                            border_radius=5,
+                    if lote_status == "vencido" or lote_status == "proximo":
+                        search_results.controls.append(
+                            ft.Container(
+                                content=ft.Stack(
+                                    controls=[
+                                        product_content,
+                                        ft.Row(
+                                                controls=[button_container],
+                                                alignment=ft.MainAxisAlignment.END,
+                                                spacing=1,
+                                        ),
+                                    ],
+                                    height=65,
+                                ),
+                                padding=6,
+                                border=ft.border.all(1, ft.colors.BLUE_50),
+                                border_radius=5,
+                                bgcolor=results_color,
+                            )
                         )
-                    )
+                    
+                    else:
+                        search_results.controls.append(
+                            ft.Container(
+                                content=ft.Stack(
+                                    controls=[
+                                        product_content,
+                                        ft.Row(
+                                                controls=[edit_button, button_container],
+                                                alignment=ft.MainAxisAlignment.END,
+                                                spacing=1,
+                                        ),
+                                    ],
+                                    height=65,
+                                ),
+                                padding=6,
+                                border=ft.border.all(1, ft.colors.BLUE_50),
+                                border_radius=5,
+                                bgcolor=results_color,
+                            )
+                        )
 
         else:
             search_results.controls.append(ft.Text("No se encontraron productos que coincidan con los filtros."))
 
         page.update()
+        show_expiry_warnings(filtered_results)
+
+    def get_lote_status(lote):
+        """Determina si un lote está vencido o próximo a vencer."""
+        current_date = datetime.now()
+        expiry_date = datetime(lote["year_vencimiento"], lote["mes_vencimiento"], 1)
+        days_to_expiry = (expiry_date - current_date).days
+
+        if days_to_expiry < 0:
+            return "vencido"
+        elif days_to_expiry <= 30:
+            return "proximo"
+        else:
+            return "vigente"
+
+
+    def show_expiry_warnings(filtered_results):
+        """Muestra advertencias sobre productos próximos a vencer."""
+        warnings = [
+            f"{item['producto']['nombre_producto']} - Lote {item['lote']['numero_lote']} vence en {item['lote']['mes_vencimiento']}/{item['lote']['year_vencimiento']}"
+            for item in filtered_results
+            if get_lote_status(item["lote"]) == "proximo"
+        ]
+        if warnings:
+            page.snack_bar = ft.SnackBar(
+                content=ft.Text("Productos próximos a vencer:\n" + "\n".join(warnings)),
+                open=True,
+            )
+            page.update()
 
     def confirm_delete(lote_id):
         page.dialog = ft.AlertDialog(
@@ -116,6 +186,61 @@ def inventory_view(page: ft.Page):
         page.snack_bar.open = True
         page.update()
         search_and_apply_filters(None)  # Actualiza la lista de productos después de borrar
+
+
+
+    def edit_inventory_dialog(product,lote):
+        error_message = ft.Text("", color="red")
+        stock_field = ft.TextField(label="Nuevo Stock", value=lote["unidades"])
+
+        def save_changes(e):       
+
+            try:
+                if len(str(stock_field.value)) > 15:
+                    error_message.value = "El stock no debe exceder los 15 caracteres."
+                    page.dialog.update()
+                    return
+
+                stock = int(stock_field.value)
+                if stock < 0:
+                    error_message.value = "El stock no puede ser negativo."
+                    page.dialog.update()
+                    return
+            except ValueError:
+                error_message.value = "Ingrese un número válido en el stock."
+                page.dialog.update()
+                return
+            
+            updated_data_lote = {
+                "unidades": int(stock_field.value),
+            }
+            update_lote(lote["id"], updated_data_lote)  # Llama a la función de Firestore
+            page.dialog.open = False
+            page.snack_bar = ft.SnackBar(ft.Text("Producto actualizado correctamente."))
+            page.snack_bar.open = True
+            page.update()
+            search_and_apply_filters(None)  # Actualiza la lista de productos
+
+        page.dialog = ft.AlertDialog(
+            title=ft.Text("Editar Producto"),
+            content=ft.Container(
+                content=ft.Column(
+                    controls=[
+                        stock_field,
+                        error_message
+                    ],
+                ),
+                width=600,  # Ancho deseado del contenido
+                height=400,  # Alto deseado del contenido
+                padding=10,  # Opcional: agregar un padding
+            ),
+            actions=[
+                ft.TextButton("Cancelar", on_click=close_dialog),
+                ft.TextButton("Guardar", on_click=save_changes),
+            ],
+        )
+        page.dialog.open = True
+        page.update()
 
 
     def show_product_details(product, lote):

@@ -14,7 +14,7 @@ def login_view(page: ft.Page):
     error_message = ft.Text("", color="red")
 
     def validar_usuario(e):
-        rut = rut_field.value.strip()
+        rut = rut_field.value.strip().lower()
         password = password_field.value.strip()
 
         if "-" not in rut:

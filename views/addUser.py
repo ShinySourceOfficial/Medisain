@@ -12,11 +12,15 @@ def createUser_view(page: ft.Page):
 
     def validar_creacion(e):
         rut = rut_input.value.strip().replace(".", "")
-        nombres = nombres_input.value.strip().upper()
-        apellidos = apellidos_input.value.strip().upper()
+        nombres = nombres_input.value.strip()
+        apellidos = apellidos_input.value.strip()
         email = email_input.value.strip()
-        rol = rol_dropdown.value.lower()
+        rol = rol_dropdown.value
         password = password_input.value
+
+        if not rut:
+            error("El RUT es obligatorio.")
+            return
 
         if "-" not in rut:
             rut = rut[:-1] + "-" + rut[-1]
@@ -25,15 +29,35 @@ def createUser_view(page: ft.Page):
             error("El RUT debe tener exactamente 10 caracteres con el guion.")
             return
         
-        if not nombres or not apellidos:
-            error("Los nombres y apellidos son obligatorios.")
+        if not nombres:
+            error("Los nombres son obligatorios.")
+            return
+        
+        if len(nombres) > 20:
+            error("El número máximo de caracteres es de 20.")
+            return
+        
+        if not apellidos:
+            error("Los apellidos son obligatorios.")
+            return
+        
+        if len(apellidos) > 20:
+            error("El número máximo de caracteres es de 20.")
+            return
+        
+        if not email:
+            error("El correo electrónico es obligatorio.")
             return
 
         if "@" not in email:
             error("El correo debe contener '@'.")
             return
+        
+        if len(email) > 50:
+            error("El número máximo de caracteres es de 50.")
+            return
 
-        if rol not in ["empleado", "administrador"]:
+        if rol not in ["Empleado", "Administrador"]:
             error("Debe seleccionar un rol válido.")
             return
 
@@ -41,7 +65,7 @@ def createUser_view(page: ft.Page):
             error("La contraseña es obligatoria.")
             return
         
-        if rol == "administrador":
+        if rol == "Administrador":
             rol = "admin"
 
         add_user(rut, nombres, apellidos, email, rol, password)

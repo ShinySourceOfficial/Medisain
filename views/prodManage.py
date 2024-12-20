@@ -1,5 +1,5 @@
 import flet as ft
-from db_connection import search_products_for_prodManage, delete_product
+from db_connection import search_products_for_prodManage, delete_product, update_product
 
 def prodManage_view(page: ft.Page):
     page.title = "Medisain - Gestor de Productos"
@@ -42,12 +42,23 @@ def prodManage_view(page: ft.Page):
                 product_key = f"{product['nombre_producto']}-{product['categoria']}-{product['precio']}"  # Clave única para el producto
                 if product_key not in seen_products:
                     seen_products.add(product_key)
+
+                    precio_original = product['precio']
+                    descuento = product['descuento']
+
+                    if descuento == 0.0:
+                        precio_final = precio_original
+                    else:
+                        precio_final = precio_original * (1 - descuento / 100)
+
+                    precio_mostrado = f"${precio_final:.1f}"
+                              
                     
                     # Crear los botones de "Editar" y "Borrar"
                     edit_button = ft.FloatingActionButton(
                         icon=ft.icons.SETTINGS,
                         mini=True,  # Botón más pequeño
-                        on_click=lambda e, p=product: print(f"Editar {p['nombre_producto']}")
+                        on_click=lambda e, p=product: edit_product_dialog(p)
                     )
                     delete_button = ft.FloatingActionButton(
                         icon=ft.icons.DELETE,
@@ -58,12 +69,12 @@ def prodManage_view(page: ft.Page):
 
                     button_container = ft.Container(
                         content=delete_button,
-                        padding=ft.padding.symmetric(vertical=10),
+                        padding=ft.padding.symmetric(vertical=10, horizontal=10),
                     )
 
                     product_content = ft.ListTile(
                         title=ft.Text(f"{product['nombre_producto'].title()} - {product['categoria'].title()}"),
-                        subtitle=ft.Text(f"Laboratorio: {product['laboratorio']} | Precio: ${product['precio']}"),
+                        subtitle=ft.Text(f"Laboratorio: {product['laboratorio']} | Precio: ${precio_mostrado}"),
                         on_click=lambda e, p=product: show_product_details(p),
                     )
                     
@@ -76,7 +87,7 @@ def prodManage_view(page: ft.Page):
                                     ft.Row(
                                             controls=[edit_button, button_container],
                                             alignment=ft.MainAxisAlignment.END,
-                                            spacing=10,
+                                            spacing=1,
                                     ),
                                 ],
                                 height=65,  # Altura del Stack
@@ -113,6 +124,157 @@ def prodManage_view(page: ft.Page):
         page.snack_bar.open = True
         page.update()
         search_and_apply_filters(None)  # Actualiza la lista de productos después de borrar
+
+        
+    def edit_product_dialog(product):
+        error_message = ft.Text("", color="red")
+        name_field = ft.TextField(label="Nuevo Nombre", value=product["nombre_producto"])
+        category_dropdown = ft.Dropdown(
+            label="Nueva Categoría",
+            options=[
+                ft.dropdown.Option("Medicamentos"),
+                ft.dropdown.Option("Vitaminas y Suplementos"),
+                ft.dropdown.Option("Anticonceptivos"),
+                ft.dropdown.Option("Infantil y Mamá"),
+                ft.dropdown.Option("Cuidado de la Piel"),
+                ft.dropdown.Option("Higiene y Cuidado Personal"),
+            ],
+            value=product["categoria"],  # Valor inicial
+        )
+        lab_field = ft.TextField(label="Nuevo Laboratorio", value=product["laboratorio"])
+        precio_field = ft.TextField(label="Nuevo Precio", value=(product["precio"]))
+        descuento_field = ft.TextField(label="Nuevo Descuento", value=product["descuento"])
+        sucursal_field = ft.TextField(label="Nueva Sucursal", value=product["sucursal"])
+        ubicacion_field = ft.TextField(label="Nueva Ubicación", value=product["ubicacion"])
+
+        def save_changes(e):
+
+            if not name_field.value:
+                error_message.value = "El nombre es obligatorio. Ingrese un nombre para el producto."
+                page.dialog.update()
+                return
+        
+            if len(name_field.value) > 20:
+                error_message.value = "El número máximo de caracteres es de 20."
+                page.dialog.update()
+                return
+            
+            if not category_dropdown.value:
+                error_message.value = "Selecciona una categoría."
+                page.dialog.update()
+                return
+            
+            if not lab_field.value:
+                error_message.value = "El laboratorio es obligatorio. Ingrese el laboratorio que fabrico el producto."
+                page.dialog.update()
+                return
+            
+            if len(lab_field.value) > 20:
+                error_message.value = "El número máximo de caracteres es de 20."
+                page.dialog.update()
+                return
+            
+            try:
+                # Convertir el valor a cadena para verificar la longitud
+                if len(str(precio_field.value)) > 15:
+                    error_message.value = "El precio no debe exceder los 15 caracteres."
+                    page.dialog.update()
+                    return
+
+                # Convertir el valor a un número para validarlo
+                precio = float(precio_field.value)  # Usar float para aceptar valores decimales si es necesario
+                if precio < 0:
+                    error_message.value = "El precio no puede ser negativo."
+                    page.dialog.update()
+                    return
+            except ValueError:
+                # Si no se puede convertir a número, mostrar un error
+                error_message.value = "Ingrese un número válido en el precio."
+                page.dialog.update()
+                return
+            
+            try:
+                if len(str(descuento_field.value)) > 3:
+                    error_message.value = "El descuento no debe exceder los 3 caracteres."
+                    page.dialog.update()
+                    return
+
+                descuento = float(descuento_field.value)  # Usar float para aceptar valores decimales si es necesario
+                if descuento < 0:
+                    error_message.value = "El descuento no puede ser negativo."
+                    page.dialog.update()
+                    return
+                if descuento > 100:
+                    error_message.value = "El descuento no puede ser más del 100%."
+                    page.dialog.update()
+                    return
+            except ValueError:
+                error_message.value = "Ingrese un número válido en el descuento."
+                page.dialog.update()
+                return
+            
+            if not sucursal_field.value:
+                error_message.value = "La sucursal es obligatoria."
+                page.dialog.update()
+                return
+            
+            if len(sucursal_field.value) > 20:
+                error_message.value = "El número máximo de caracteres es de 20."
+                page.dialog.update()
+                return
+            
+            if not ubicacion_field.value:
+                error_message.value = "La ubicación es obligatoria."
+                page.dialog.update()
+                return
+            
+            if len(ubicacion_field.value) > 20:
+                error_message.value = "El número máximo de caracteres es de 20."
+                page.dialog.update()
+                return
+
+            updated_data = {
+                "nombre_producto": name_field.value.strip(),
+                "categoria": category_dropdown.value,
+                "laboratorio": lab_field.value.strip(),
+                "precio": float(precio_field.value),
+                "descuento": float(descuento_field.value),
+                "sucursal": sucursal_field.value.strip(),
+                "ubicacion": ubicacion_field.value.strip(),
+            }
+            update_product(product["id"], updated_data)  # Llama a la función de Firestore
+            page.dialog.open = False
+            page.snack_bar = ft.SnackBar(ft.Text("Producto actualizado correctamente."))
+            page.snack_bar.open = True
+            page.update()
+            search_and_apply_filters(None)  # Actualiza la lista de productos
+
+        page.dialog = ft.AlertDialog(
+            title=ft.Text("Editar Producto"),
+            content=ft.Container(
+                content=ft.Column(
+                    controls=[
+                        name_field, 
+                        category_dropdown, 
+                        lab_field, 
+                        precio_field, 
+                        descuento_field, 
+                        sucursal_field, 
+                        ubicacion_field, 
+                        error_message
+                    ],
+                ),
+                width=600,  # Ancho deseado del contenido
+                height=400,  # Alto deseado del contenido
+                padding=10,  # Opcional: agregar un padding
+            ),
+            actions=[
+                ft.TextButton("Cancelar", on_click=close_dialog),
+                ft.TextButton("Guardar", on_click=save_changes),
+            ],
+        )
+        page.dialog.open = True
+        page.update()
 
 
     def show_product_details(product):
